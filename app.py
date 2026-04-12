@@ -53,25 +53,84 @@ for pid in PATIENTS:
     live_patient_data[pid] = get_initial_reading(pid)
     patient_cursors[pid] = 1
 
+
+# ── Attack Simulation Profiles (all 3 types) ─────────────────
+ATTACK_PROFILES = {
+    'Additive Bias': [
+        {'heart_rate': 145, 'bp_systolic': 185, 'spo2': 88},
+        {'heart_rate': 38,  'bp_diastolic': 110, 'spo2': 82},
+        {'temperature': 40.5, 'resp_rate': 32, 'heart_rate': 130},
+    ],
+    'Scaling': [
+        {'heart_rate': 220, 'bp_systolic': 210, 'bp_diastolic': 130},
+        {'heart_rate': 25,  'bp_systolic': 60,  'spo2': 75},
+        {'spo2': 68, 'resp_rate': 40, 'temperature': 41.2},
+    ],
+    'Replay': [
+        {'heart_rate': 110, 'bp_systolic': 170, 'spo2': 91},
+        {'heart_rate': 95,  'bp_diastolic': 105, 'temperature': 39.8},
+        {'resp_rate': 28,   'bp_systolic': 195,  'heart_rate': 138},
+    ],
+}
+
+# Tracks active auto-attacks per patient
+auto_attack_state = {pid: {'active': False, 'countdown': 0} for pid in PATIENTS}
+
 def simulate_live_data():
-    """Background thread simulating data every 2 seconds"""
+    """Background thread simulating data every 2 seconds with aggressive attack injection"""
+    cycle = 0
     while True:
         time.sleep(2)
+        cycle += 1
+
         for pid in PATIENTS:
             pdata = df_all[df_all['patient_id'] == pid]
             idx = patient_cursors[pid] % len(pdata)
             row = pdata.iloc[idx]
             reading_raw = [row[f] for f in FEATURES]
-            
+
+            # Apply user-injected overrides (from Simulator tab) first
             if pid in injected_overrides:
                 for i, f in enumerate(FEATURES):
                     if f in injected_overrides[pid]:
                         reading_raw[i] = injected_overrides[pid][f]
-                        
+
             live_patient_data[pid] = reading_raw
             patient_cursors[pid] += 1
 
+        # ── Auto-Attack Injector: fires every ~6 seconds ──────
+        # Each cycle, pick 2–4 random patients and inject one of the 3 attack types
+        if cycle % 3 == 0:
+            attack_types = list(ATTACK_PROFILES.keys())
+            n_targets = random.randint(2, 4)
+            targets = random.sample(PATIENTS, n_targets)
+
+            for pid in targets:
+                # Don't override an existing manual injection
+                if injected_overrides.get(pid):
+                    continue
+
+                attack_type = random.choice(attack_types)
+                profile = random.choice(ATTACK_PROFILES[attack_type])
+                duration = random.randint(8, 20)
+
+                # Inject each feature in the attack profile
+                if pid not in injected_overrides:
+                    injected_overrides[pid] = {}
+                for feature, value in profile.items():
+                    injected_overrides[pid][feature] = value
+
+                # Clear after duration
+                def clear_auto(p=pid, feats=list(profile.keys()), d=duration):
+                    time.sleep(d)
+                    for feat in feats:
+                        injected_overrides[p].pop(feat, None)
+
+                threading.Thread(target=clear_auto, daemon=True).start()
+
 threading.Thread(target=simulate_live_data, daemon=True).start()
+
+
 
 def get_severity(prob):
     if prob < 0.5:   return "Normal",   "success", 0
