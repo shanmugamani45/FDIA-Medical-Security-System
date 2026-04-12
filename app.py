@@ -4,6 +4,7 @@ import pandas as pd
 import pickle
 import json
 import random
+import logging
 from datetime import datetime
 from reportlab.lib.pagesizes import letter
 from reportlab.lib import colors
@@ -36,12 +37,13 @@ df_all = pd.read_csv('data/patient_vitals.csv')
 FEATURES   = ['heart_rate','bp_systolic','bp_diastolic','spo2','temperature','resp_rate']
 PATIENTS   = df_all['patient_id'].unique().tolist()
 
-# ── Alert Log (in memory) ─────────────────────────────────────
+# ── State Tracking ───────────────────────────────────────────
 alert_log = []
 history_log = []
 patient_cursors = {pid: 0 for pid in PATIENTS}
 live_patient_data = {pid: None for pid in PATIENTS}
 injected_overrides = {pid: {} for pid in PATIENTS}
+simulation_cycle = 0  # Global counter to verify the thread is running
 
 # ── Pre-populate all patients immediately on startup ─────────
 def get_initial_reading(pid):
@@ -78,10 +80,11 @@ auto_attack_state = {pid: {'active': False, 'countdown': 0} for pid in PATIENTS}
 
 def simulate_live_data():
     """Background thread simulating data every 2 seconds with aggressive attack injection"""
-    cycle = 0
+    global simulation_cycle
     while True:
-        time.sleep(2)
-        cycle += 1
+        try:
+            time.sleep(2)
+            simulation_cycle += 1
 
         for pid in PATIENTS:
             pdata = df_all[df_all['patient_id'] == pid]
@@ -127,6 +130,10 @@ def simulate_live_data():
                         injected_overrides[p].pop(feat, None)
 
                 threading.Thread(target=clear_auto, daemon=True).start()
+        
+        except Exception as e:
+            logging.error(f"Simulation Error: {e}")
+            time.sleep(5) # Cooldown before restart
 
 threading.Thread(target=simulate_live_data, daemon=True).start()
 
@@ -147,12 +154,17 @@ def analyze_reading(reading_raw, patient_id):
     attack_type = "Normal"
     explanation = "All vitals within expected range."
     shap_dict = {}
+    
+    # Optional: Skip SHAP calculation if memory is tight or under load
+    skip_shap = os.environ.get('SKIP_SHAP', 'False') == 'True'
+
     if is_attack:
         type_pred = type_clf.predict([reading_scaled])[0]
         attack_type = inv_type.get(type_pred, "Unknown")
         
-        try:
-            shap_vals = explainer.shap_values(np.array([reading_scaled]))
+        if not skip_shap:
+            try:
+                shap_vals = explainer.shap_values(np.array([reading_scaled]))
             if isinstance(shap_vals, list):
                 attack_shap = shap_vals[1][0]
             elif len(shap_vals.shape) == 3:
@@ -166,11 +178,12 @@ def analyze_reading(reading_raw, patient_id):
             explanation = (f"{attack_type} attack detected. "
                            f"Top anomaly indicator: {top_feature} (SHAP effect: {effect_val:.2f})")
             
-            for i, f in enumerate(FEATURES):
                 shap_dict[f.replace('_', ' ').title()] = round(float(attack_shap[i]), 4)
-                
-        except Exception as e:
-            explanation = f"{attack_type} attack detected. (Explainability failed: {e})"
+                    
+            except Exception as e:
+                explanation = f"{attack_type} attack detected. (Explainability failed: {e})"
+        else:
+             explanation = f"{attack_type} attack detected. (AI Detailed Insight Paused)"
 
     return {
         'patient_id': patient_id,
@@ -238,7 +251,11 @@ def stream():
                 alert_log.insert(0, result)
                 if len(alert_log) > 50:
                     alert_log.pop()
-    return jsonify(results)
+    
+    response = jsonify(results)
+    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+    response.headers['X-Simulation-Cycle'] = str(simulation_cycle)
+    return response
 
 @app.route('/api/history')
 def get_history():

@@ -473,6 +473,9 @@
       <div class="subtitle">Real-Time False Data Injection Attack Detection — ICU Monitor</div>
     </div>
     <div style="display:flex;align-items:center;gap:20px;">
+      <div id="sync-status" style="font-size:0.75rem; color:#8b949e; background:#161b22; padding:4px 10px; border-radius:4px; border:1px solid #30363d;">
+        📡 Syncing...
+      </div>
       <button class="btn btn-alarm" id="mute-btn" onclick="toggleMute()">🔇 Alarms Muted</button>
       <div id="clock" style="font-size:0.8rem;color:#8b949e;"></div>
       <a href="/logout" style="background:#2d0a0a;color:#f85149;border:1px solid #f85149;padding:6px 14px;border-radius:6px;font-size:0.75rem;font-weight:700;text-decoration:none;transition:all 0.2s;" onmouseover="this.style.background='#f85149';this.style.color='white'" onmouseout="this.style.background='#2d0a0a';this.style.color='#f85149'">🚪 Logout</a>
@@ -1042,10 +1045,20 @@
           historyBody.innerHTML = historyData.map(h => `<tr style="border-bottom:1px solid #21262d;"><td style="padding:4px 0;">${h.timestamp}</td><td>${h.patient_id}</td><td>${h.attack_prob}%</td><td><span style="color:${h.severity === 'High' ? '#f85149' : h.severity === 'Medium' ? '#ff9800' : h.severity === 'Low' ? '#ffeb3b' : '#3fb950'}">${h.severity}</span></td><td style="font-style:italic; font-size:0.7rem;">${h.explanation || 'Processed telemetry limit'}</td></tr>`).join('');
         }
 
+        const syncStatus = document.getElementById('sync-status');
+        if (syncStatus) {
+           const cycle = streamRes.headers.get('X-Simulation-Cycle') || '?';
+           syncStatus.innerHTML = `<span style="color:#3fb950">●</span> Last Sync: ${now} (Cycle: ${cycle})`;
+        }
+
         renderSelectedDetail(patients);
         renderSimulatedDetail(patients);
 
-      } catch (e) { console.error(e); }
+      } catch (e) { 
+        console.error(e); 
+        const syncStatus = document.getElementById('sync-status');
+        if (syncStatus) syncStatus.innerHTML = `<span style="color:#f85149">●</span> Last Sync: Offline`;
+      }
     }
 
     setInterval(poll, 2000);
