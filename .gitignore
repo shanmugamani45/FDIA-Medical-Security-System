@@ -1,0 +1,34 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Virtual environment
+venv/
+env/
+.env
+
+# Flask session files
+flask_session/
+
+# Model files (large binaries - optional to exclude)
+# models/
+
+# Reports output
+reports/
+
+# Data files (optional - include if small)
+# data/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+
+# Logs
+*.log

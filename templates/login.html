@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FDIA Medical Security System - Login</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Segoe UI',sans-serif; background:#0d1117; color:#e6edf3; display:flex; align-items:center; justify-content:center; height:100vh; }
+  
+  .login-container {
+    background:#161b22;
+    border:1px solid #30363d;
+    border-radius:12px;
+    padding:40px;
+    width:380px;
+    box-shadow:0 10px 30px rgba(0,0,0,0.8);
+    position: relative;
+    overflow: hidden;
+  }
+  
+  /* Top glow accent */
+  .login-container::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 4px;
+    background: linear-gradient(90deg, #1f3864, #58a6ff, #1f3864);
+  }
+
+  .login-header { text-align:center; margin-bottom:30px; }
+  .login-header h1 { font-size:1.5rem; font-weight:700; color:#e6edf3; margin-bottom:8px; }
+  .login-header p { font-size:0.8rem; color:#8b949e; }
+  .status-dot { width:8px; height:8px; border-radius:50%; background:#4caf50; display:inline-block; margin-right:4px; animation:pulse 1.5s infinite; }
+  
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  .form-group { margin-bottom:20px; }
+  .form-group label { display:block; font-size:0.8rem; color:#8b949e; margin-bottom:6px; font-weight:600; text-transform:uppercase; letter-spacing:1px; }
+  .form-control { 
+    width:100%; background:#0d1117; border:1px solid #30363d; color:#e6edf3; padding:12px; border-radius:6px; font-family:inherit; transition:border 0.2s;
+  }
+  .form-control:focus { outline:none; border-color:#58a6ff; }
+  
+  .btn {
+    width:100%; background:#1f3864; color:#58a6ff; border:1px solid #2e75b6; padding:12px; border-radius:6px; cursor:pointer; font-size:0.9rem; transition:all 0.2s; font-weight:600;
+  }
+  .btn:hover { background:#2e75b6; color:white; }
+  
+  .error-box { background:#2d0a0a; border:1px solid #f85149; color:#f85149; padding:10px; border-radius:6px; font-size:0.8rem; margin-bottom:20px; text-align:center; }
+  
+  .footer-hints { margin-top:20px; font-size:0.7rem; color:#4a535c; text-align:center; line-height:1.6; }
+</style>
+</head>
+<body>
+
+<div class="login-container">
+  <div class="login-header">
+    <h1>🏥 FDIA Security System</h1>
+    <p><span class="status-dot"></span> Authorized Access Portal</p>
+  </div>
+  
+  {% if error %}
+  <div class="error-box">
+    🚨 {{ error }}
+  </div>
+  {% endif %}
+
+  <form method="POST" action="/login">
+    <div class="form-group">
+      <label>Access Identity (Username)</label>
+      <input type="text" name="username" class="form-control" placeholder="Enter username..." required autofocus>
+    </div>
+    <div class="form-group">
+      <label>Security Key (Password)</label>
+      <input type="password" name="password" class="form-control" placeholder="Enter password..." required>
+    </div>
+    <button type="submit" class="btn">Authenticate & Access</button>
+  </form>
+  
+  <div class="footer-hints">
+    Restricted System. All access is logged and monitored.<br>
+    Unauthroized use strictly prohibited.
+  </div>
+</div>
+
+</body>
+</html>

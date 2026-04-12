@@ -1,0 +1,1056 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FDIA Medical Security System</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #0d1117;
+      color: #e6edf3;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #1f3864, #2e75b6);
+      padding: 16px 30px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+    }
+
+    .header h1 {
+      font-size: 1.3rem;
+      font-weight: 700;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    }
+
+    .header .subtitle {
+      font-size: 0.75rem;
+      color: #90caf9;
+      margin-top: 2px;
+    }
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #4caf50;
+      display: inline-block;
+      margin-right: 6px;
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 1
+      }
+
+      50% {
+        opacity: 0.4
+      }
+    }
+
+    /* Multi-Tab Layout Layout */
+    .layout-wrapper {
+      display: flex;
+      height: calc(100vh - 70px);
+    }
+
+    .sidebar {
+      width: 220px;
+      background: #161b22;
+      border-right: 1px solid #30363d;
+      display: flex;
+      flex-direction: column;
+      padding-top: 20px;
+    }
+
+    .nav-item {
+      padding: 14px 20px;
+      color: #8b949e;
+      cursor: pointer;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      transition: all 0.2s;
+      border-left: 4px solid transparent;
+    }
+
+    .nav-item:hover {
+      background: #1f3864;
+      color: #58a6ff;
+    }
+
+    .nav-item.active {
+      background: #1f3864;
+      color: #58a6ff;
+      border-left-color: #58a6ff;
+    }
+
+    .content-area {
+      flex: 1;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .tab-pane {
+      display: none;
+      height: 100%;
+      overflow-y: auto;
+      padding: 16px;
+      animation: fadeIn 0.3s;
+    }
+
+    .tab-pane.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(5px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .monitor-layout {
+      display: grid;
+      grid-template-columns: 1fr 350px;
+      gap: 16px;
+      height: 100%;
+    }
+
+    .left {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      overflow-y: auto;
+    }
+
+    .right {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      overflow-y: auto;
+    }
+
+    .card {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 10px;
+      padding: 16px;
+    }
+
+    .card-title {
+      font-size: 0.8rem;
+      color: #8b949e;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 12px;
+    }
+
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+
+    .stat {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 14px;
+      text-align: center;
+    }
+
+    .stat .val {
+      font-size: 1.8rem;
+      font-weight: 700;
+    }
+
+    .stat .lbl {
+      font-size: 0.7rem;
+      color: #8b949e;
+      margin-top: 4px;
+    }
+
+    .stat.danger .val {
+      color: #f85149;
+    }
+
+    .stat.warning .val {
+      color: #e3b341;
+    }
+
+    .stat.success .val {
+      color: #3fb950;
+    }
+
+    .stat.info .val {
+      color: #58a6ff;
+    }
+
+    .patients-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+
+    .patient-card {
+      background: #0d1117;
+      border: 2px solid #30363d;
+      border-radius: 8px;
+      padding: 12px;
+      cursor: pointer;
+      transition: all 0.3s;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    }
+
+    .patient-card:hover {
+      border-color: #58a6ff;
+      transform: translateY(-2px);
+    }
+
+    .patient-card.attack {
+      border-color: #f85149;
+      background: #1a0a0a;
+      animation: alertpulse 1s infinite;
+    }
+
+    .patient-card.warning {
+      border-color: #e3b341;
+      background: #1a150a;
+    }
+
+    @keyframes alertpulse {
+
+      0%,
+      100% {
+        border-color: #f85149;
+        box-shadow: 0 0 10px rgba(248, 81, 73, 0.5);
+      }
+
+      50% {
+        border-color: #ff6b6b;
+        box-shadow: 0 0 2px rgba(248, 81, 73, 0.2);
+      }
+    }
+
+    .patient-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .patient-id {
+      font-weight: 700;
+      font-size: 0.9rem;
+    }
+
+    .badge {
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 0.7rem;
+      font-weight: 700;
+    }
+
+    .badge.success {
+      background: #0d3321;
+      color: #3fb950;
+    }
+
+    .badge.warning {
+      background: #3a3000;
+      color: #ffeb3b;
+    }
+
+    .badge.orange {
+      background: #4a2500;
+      color: #ff9800;
+    }
+
+    .badge.danger {
+      background: #4a0505;
+      color: #f44336;
+    }
+
+    .vitals-mini {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 4px;
+      margin-top: 6px;
+    }
+
+    .vital-mini {
+      background: #161b22;
+      border-radius: 4px;
+      padding: 4px 6px;
+      font-size: 0.7rem;
+    }
+
+    .vital-mini span {
+      display: block;
+      color: #8b949e;
+      font-size: 0.6rem;
+    }
+
+    .attack-type-tag {
+      font-size: 0.65rem;
+      color: #f0883e;
+      margin-top: 6px;
+      font-weight: 600;
+    }
+
+    .explanation {
+      font-size: 0.65rem;
+      color: #8b949e;
+      margin-top: 4px;
+      font-style: italic;
+    }
+
+    .alert-item {
+      padding: 10px;
+      border-left: 3px solid #f85149;
+      background: #1a0a0a;
+      border-radius: 4px;
+      margin-bottom: 8px;
+      font-size: 0.75rem;
+    }
+
+    .alert-item .alert-header {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 4px;
+    }
+
+    .alert-item .alert-pid {
+      font-weight: 700;
+      color: #f85149;
+    }
+
+    .alert-item .alert-time {
+      color: #8b949e;
+    }
+
+    .alert-item .alert-type {
+      color: #f0883e;
+      font-weight: 600;
+    }
+
+    .alert-item .alert-exp {
+      color: #8b949e;
+      margin-top: 3px;
+      font-style: italic;
+    }
+
+    .btn {
+      background: #1f3864;
+      color: #58a6ff;
+      border: 1px solid #2e75b6;
+      padding: 6px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.75rem;
+      transition: all 0.2s;
+      font-weight: 600;
+    }
+
+    .btn:hover {
+      background: #2e75b6;
+      color: white;
+    }
+
+    .btn-alarm {
+      border: 1px solid #555;
+      background: #222;
+      color: #ccc;
+    }
+
+    .btn-alarm.unmuted {
+      border-color: #f85149;
+      color: #f85149;
+      background: rgba(248, 81, 73, 0.1);
+    }
+
+    .selected-patient {
+      background: #1f3864;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+
+    .vitals-detail {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .vital-detail {
+      background: #0d1117;
+      border-radius: 6px;
+      padding: 8px;
+      text-align: center;
+    }
+
+    .vital-detail .v {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #58a6ff;
+    }
+
+    .vital-detail .l {
+      font-size: 0.65rem;
+      color: #8b949e;
+    }
+
+    /* Shared Form UI for Simulator */
+    .form-group {
+      margin-bottom: 15px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 0.8rem;
+      color: #8b949e;
+      margin-bottom: 5px;
+      font-weight: 600;
+    }
+
+    .form-control {
+      width: 100%;
+      background: #0d1117;
+      border: 1px solid #30363d;
+      color: #e6edf3;
+      padding: 10px;
+      border-radius: 6px;
+      font-family: inherit;
+    }
+
+    .form-control:focus {
+      outline: none;
+      border-color: #58a6ff;
+    }
+
+    ::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #0d1117;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #30363d;
+      border-radius: 2px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="header">
+    <div>
+      <h1>🏥 FDIA Medical Security System</h1>
+      <div class="subtitle">Real-Time False Data Injection Attack Detection — ICU Monitor</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:20px;">
+      <button class="btn btn-alarm" id="mute-btn" onclick="toggleMute()">🔇 Alarms Muted</button>
+      <div id="clock" style="font-size:0.8rem;color:#8b949e;"></div>
+      <a href="/logout" style="background:#2d0a0a;color:#f85149;border:1px solid #f85149;padding:6px 14px;border-radius:6px;font-size:0.75rem;font-weight:700;text-decoration:none;transition:all 0.2s;" onmouseover="this.style.background='#f85149';this.style.color='white'" onmouseout="this.style.background='#2d0a0a';this.style.color='#f85149'">🚪 Logout</a>
+    </div>
+  </div>
+
+  <div class="layout-wrapper">
+    <!-- Sidebar Navigation -->
+    <div class="sidebar">
+      {% if role in ['admin', 'doctor'] %}
+      <div class="nav-item {% if role != 'hacker' %}active{% endif %}" onclick="switchTab('monitor', this)">🩺 Live Monitor</div>
+      {% endif %}
+      
+      {% if role == 'admin' %}
+      <div class="nav-item" onclick="switchTab('analytics', this)">📊 Analytics & History</div>
+      {% endif %}
+      
+      {% if role == 'hacker' %}
+      <div class="nav-item {% if role == 'hacker' %}active{% endif %}" onclick="switchTab('simulator', this)">💉 Attack Simulator</div>
+      {% endif %}
+      
+      <div style="margin-top:auto;padding:16px 20px;border-top:1px solid #30363d;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span class="status-dot"></span>
+          <span style="font-size:0.75rem;color:#8b949e;font-weight:600;">{{ role | title }}</span>
+        </div>
+        <div style="font-size:0.65rem;color:#4a535c;margin-top:4px;">Access Level</div>
+      </div>
+    </div>
+
+    <!-- Content Area -->
+    <div class="content-area">
+
+      <!-- Tab: Monitor -->
+      {% if role in ['admin', 'doctor'] %}
+      <div id="tab-monitor" class="tab-pane {% if role != 'hacker' %}active{% endif %}">
+        <div class="monitor-layout">
+          <div class="left">
+            <div class="stats-row">
+              <div class="stat info">
+                <div class="val" id="total-patients">0</div>
+                <div class="lbl">Patients Monitored</div>
+              </div>
+              <div class="stat success">
+                <div class="val" id="normal-count">0</div>
+                <div class="lbl">Normal</div>
+              </div>
+              <div class="stat danger">
+                <div class="val" id="attack-count">0</div>
+                <div class="lbl">Attacks Detected</div>
+              </div>
+              <div class="stat warning">
+                <div class="val" id="attack-rate">0%</div>
+                <div class="lbl">Attack Rate</div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-title">Patient Monitor — ICU Ward</div>
+              <div class="patients-grid" id="patients-grid"></div>
+            </div>
+          </div>
+
+          <div class="right">
+            <!-- Selected Patient -->
+            <div class="card">
+              <div class="card-title">Selected Patient Detail</div>
+              <div id="selected-detail">
+                <div style="color:#8b949e;font-size:0.8rem;text-align:center;padding:20px;">
+                  Click a patient card to view details
+                </div>
+              </div>
+
+              <div id="patientRiskContainer" style="display:none; margin-top:20px;">
+                <h4 style="font-size:0.75rem; color:#8b949e; text-align:center; margin-bottom:5px;">Attack Probability
+                  Trend</h4>
+                <div style="height: 120px;">
+                  <canvas id="patientRiskChart"></canvas>
+                </div>
+              </div>
+
+              <div id="shapContainer"
+                style="display:none; margin-top:20px; border-top:1px solid #30363d; padding-top:15px;">
+                <h4 style="font-size:0.75rem; color:#f0883e; text-align:center; margin-bottom:5px;">SHAP Feature
+                  Importance Analysis</h4>
+                <div style="height: 150px;">
+                  <canvas id="shapRadarChart"></canvas>
+                </div>
+              </div>
+            </div>
+
+            <!-- Alert Log -->
+            <div class="card" style="flex:1;">
+              <div class="card-title" style="display:flex;justify-content:space-between;">
+                <span>🚨 Critical Alert Log</span>
+                <span id="alert-badge"
+                  style="background:#2d0a0a;color:#f85149;padding:2px 8px;border-radius:10px;font-size:0.7rem;">0</span>
+              </div>
+              <div id="alert-log" style="max-height:300px;overflow-y:auto;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Tab: Analytics & History -->
+      {% if role == 'admin' %}
+      <div id="tab-analytics" class="tab-pane">
+        <h2 style="margin-bottom:15px; font-weight:600; color:#58a6ff;">Historical Analytics</h2>
+
+        <div class="stats-row" style="margin-bottom: 20px;">
+          <div class="card" style="grid-column: span 2;">
+            <div class="card-title">Attack Detection Timeline</div>
+            <div style="height: 250px; position: relative;"><canvas id="timelineChart"></canvas></div>
+          </div>
+          <div class="card">
+            <div class="card-title">Attack Type Distribution</div>
+            <div style="height: 250px; position: relative;"><canvas id="attackChart"></canvas></div>
+          </div>
+          <div class="card">
+            <div class="card-title">Severity Distribution</div>
+            <div style="height: 250px; position: relative;"><canvas id="severityChart"></canvas></div>
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
+          <div class="card">
+            <div class="card-title">Global Event History Database</div>
+            <div id="history-log" style="max-height: 400px; overflow-y:auto; font-size:0.8rem; padding-right:5px;">
+              <table style="width:100%; text-align:left; border-collapse: collapse;">
+                <thead>
+                  <tr style="color:#8b949e; border-bottom:1px solid #30363d; height: 30px;">
+                    <th>Time</th>
+                    <th>Patient ID</th>
+                    <th>Attack Risk</th>
+                    <th>Severity</th>
+                    <th>Algorithm Explanation</th>
+                  </tr>
+                </thead>
+                <tbody id="history-body"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">Critical Alert Log (Extended)</div>
+            <div id="analytics-alert-log" style="max-height: 400px; overflow-y:auto; padding-right:5px;">
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Tab: Attack Simulator -->
+      {% if role == 'hacker' %}
+      <div id="tab-simulator" class="tab-pane {% if role == 'hacker' %}active{% endif %}">
+        <h2 style="margin-bottom:25px; font-weight:600; color:#58a6ff;">FDIA Attack Simulator Engine</h2>
+
+        <div style="display:flex; gap:20px;">
+          <!-- Injector Box -->
+          <div class="card" style="width: 500px; flex-shrink: 0;">
+            <div class="card-title">Inject False Telemetry Data</div>
+            <p style="font-size:0.85rem; color:#8b949e; margin-bottom:20px; line-height: 1.4;">
+              Manually override a specific vital sign for a patient. The system will process this false data locally and
+              the ML model will attempt to detect the anomaly.
+            </p>
+
+            <div class="form-group">
+              <label>Target Patient</label>
+              <select class="form-control" id="sim-patient">
+                <!-- Populated via JS -->
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Target Feature (Vitals)</label>
+              <select class="form-control" id="sim-feature">
+                <option value="heart_rate">Heart Rate (bpm)</option>
+                <option value="bp_systolic">Blood Pressure Systolic</option>
+                <option value="bp_diastolic">Blood Pressure Diastolic</option>
+                <option value="spo2">Oxygen Saturation (%)</option>
+                <option value="temperature">Body Temperature (°C)</option>
+                <option value="resp_rate">Respiratory Rate</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Injected Override Value</label>
+              <input type="number" class="form-control" id="sim-value" value="200" step="0.1">
+            </div>
+            <div class="form-group">
+              <label>Attack Duration (Seconds)</label>
+              <input type="number" class="form-control" id="sim-duration" value="15">
+            </div>
+
+            <button class="btn"
+              style="width:100%; margin-top:10px; padding: 12px; background: #9b2823; border: none; color: white;"
+              onclick="injectAttack()">💉 Execute Attack Sequence</button>
+          </div>
+
+          <!-- Simulated Target Monitor -->
+          <div class="card" style="flex:1;">
+            <div class="card-title">Target Patient Live Monitor</div>
+            <div id="simulated-detail">
+              <div style="color:#8b949e;font-size:0.8rem;text-align:center;padding:20px;">
+                Select a target patient from the dropdown on the left.
+              </div>
+            </div>
+
+            <div id="sim-patientRiskContainer" style="display:none; margin-top:20px;">
+              <h4 style="font-size:0.75rem; color:#8b949e; text-align:center; margin-bottom:5px;">Attack Probability
+                Trend</h4>
+              <div style="height: 150px; position:relative;">
+                <canvas id="sim-patientRiskChart"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+    </div>
+  </div>
+
+  <script>
+    // --- State & Navigation ---
+    function switchTab(tabId, el) {
+      document.querySelectorAll('.tab-pane').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      document.getElementById('tab-' + tabId).classList.add('active');
+      if (el) el.classList.add('active');
+    }
+
+    let selectedPatient = null;
+    let totalAttacks = 0;
+    let totalReadings = 0;
+    let attackCounts = { 'Additive Bias': 0, 'Scaling': 0, 'Replay': 0 };
+    let severityCounts = { 'High': 0, 'Medium': 0, 'Low': 0, 'Normal': 0 };
+    let timelineLabels = [];
+    let timelineData = [];
+    let patientRiskLabels = [];
+    let patientRiskData = [];
+    let patientsListPopulated = false;
+    let patientAttackState = {}; // Ensures audio plays once per spike
+
+    // --- Audio & Notifications ---
+    let alarmsMuted = true;
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    function toggleMute() {
+      alarmsMuted = !alarmsMuted;
+      const btn = document.getElementById('mute-btn');
+      btn.textContent = alarmsMuted ? "🔇 Alarms Muted" : "🔊 Alarms Active";
+      if (!alarmsMuted) {
+        btn.classList.add('unmuted');
+        if ("Notification" in window && Notification.permission !== "granted") {
+          Notification.requestPermission();
+        }
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+      } else {
+        btn.classList.remove('unmuted');
+      }
+    }
+
+    function playAlarm() {
+      if (alarmsMuted) return;
+      try {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+        osc.frequency.setValueAtTime(800, audioCtx.currentTime + 0.1);
+        gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.5);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.5);
+      } catch (e) { }
+    }
+
+    // --- Simulator ---
+    function injectAttack() {
+      const payload = {
+        patient_id: document.getElementById('sim-patient').value,
+        feature: document.getElementById('sim-feature').value,
+        value: parseFloat(document.getElementById('sim-value').value),
+        duration: parseInt(document.getElementById('sim-duration').value)
+      };
+      fetch('/api/inject', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      }).then(r => r.json()).then(d => {
+        alert(`✅ Attack Initiated!\nPatient: ${payload.patient_id}\nTarget: ${payload.feature}\nOverridden Value: ${payload.value}\nDuration: ${payload.duration}s`);
+        // Remain on simulator tab
+        selectPatient(payload.patient_id); // Sync the global selected patient for when they switch back
+      });
+    }
+
+    // --- Charts Setup ---
+    const tlCtx = document.getElementById('timelineChart');
+    const timelineChart = tlCtx ? new Chart(tlCtx.getContext('2d'), {
+      type: 'line',
+      data: { labels: timelineLabels, datasets: [{ label: 'Attacks Detected', data: timelineData, borderColor: '#f85149', backgroundColor: 'rgba(248,81,73,0.1)', fill: true, tension: 0.4, pointRadius: 3 }] },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: '#8b949e', font: { size: 10 } } } }, scales: { x: { ticks: { color: '#8b949e', font: { size: 9 } }, grid: { color: '#21262d' } }, y: { ticks: { color: '#8b949e', font: { size: 9 } }, grid: { color: '#21262d' }, min: 0 } } }
+    }) : null;
+
+    // Simulator Chart
+    let simPatientRiskLabels = [];
+    let simPatientRiskData = [];
+    const simPrCtx = document.getElementById('sim-patientRiskChart');
+    const simPatientRiskChart = simPrCtx ? new Chart(simPrCtx.getContext('2d'), {
+      type: 'line',
+      data: { labels: simPatientRiskLabels, datasets: [{ label: 'Risk Probability %', data: simPatientRiskData, borderColor: '#f85149', backgroundColor: 'rgba(248,81,73,0.1)', fill: true, tension: 0.3, pointRadius: 2 }] },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#8b949e', font: { size: 9 }, maxTicksLimit: 5 }, grid: { display: false } }, y: { ticks: { color: '#8b949e', font: { size: 9 } }, grid: { color: '#21262d' }, min: 0, max: 100 } } }
+    }) : null;
+
+    const atCtx = document.getElementById('attackChart');
+    const attackChart = atCtx ? new Chart(atCtx.getContext('2d'), {
+      type: 'doughnut',
+      data: { labels: ['Additive Bias', 'Scaling', 'Replay'], datasets: [{ data: [0, 0, 0], backgroundColor: ['#f85149', '#e3b341', '#f0883e'], borderWidth: 0 }] },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: '#8b949e', font: { size: 10 } } } } }
+    }) : null;
+
+    const sevCtx = document.getElementById('severityChart');
+    const severityChart = sevCtx ? new Chart(sevCtx.getContext('2d'), {
+      type: 'doughnut',
+      data: { labels: ['High', 'Medium', 'Low', 'Normal'], datasets: [{ data: [0, 0, 0, 0], backgroundColor: ['#f85149', '#ff9800', '#ffeb3b', '#3fb950'], borderWidth: 0 }] },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: '#8b949e', font: { size: 10 } } } } }
+    }) : null;
+
+    const prCtx = document.getElementById('patientRiskChart');
+    const patientRiskChart = prCtx ? new Chart(prCtx.getContext('2d'), {
+      type: 'line',
+      data: { labels: patientRiskLabels, datasets: [{ label: 'Risk Probability %', data: patientRiskData, borderColor: '#58a6ff', backgroundColor: 'rgba(88,166,255,0.1)', fill: true, tension: 0.3, pointRadius: 2 }] },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#8b949e', font: { size: 9 }, maxTicksLimit: 5 }, grid: { display: false } }, y: { ticks: { color: '#8b949e', font: { size: 9 } }, grid: { color: '#21262d' }, min: 0, max: 100 } } }
+    }) : null;
+
+    const sCtx = document.getElementById('shapRadarChart');
+    const featureNames = ['Heart Rate', 'Bp Systolic', 'Bp Diastolic', 'Spo2', 'Temperature', 'Resp Rate'];
+    const shapRadarChart = sCtx ? new Chart(sCtx.getContext('2d'), {
+      type: 'radar',
+      data: {
+        labels: featureNames,
+        datasets: [{ label: 'SHAP Anomaly Contribution', data: [0, 0, 0, 0, 0, 0], backgroundColor: 'rgba(240, 136, 62, 0.4)', borderColor: '#f0883e', pointBackgroundColor: '#f0883e', borderWidth: 2 }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        scales: { r: { grid: { color: '#30363d' }, angleLines: { color: '#30363d' }, pointLabels: { color: '#8b949e', font: { size: 9, weight: 600 } }, ticks: { display: false } } },
+        plugins: { legend: { display: false } }
+      }
+    }) : null;
+
+
+    // --- Realtime Engine ---
+    function updateClock() { document.getElementById('clock').textContent = new Date().toLocaleTimeString(); }
+    setInterval(updateClock, 1000); updateClock();
+
+    function renderPatientCard(p) {
+      const cls = p.severity === 'High' || p.severity === 'Medium' ? 'attack' : p.severity === 'Low' ? 'warning' : '';
+      return `
+    <div class="patient-card ${cls}" onclick="selectPatient('${p.patient_id}')">
+      <div class="patient-header">
+        <span class="patient-id">${p.patient_id}</span>
+        <span class="badge ${p.severity_class}">${p.is_attack ? '🚨 ' + p.severity : '✅ Normal'}</span>
+      </div>
+      <div class="vitals-mini">
+        <div class="vital-mini"><span>HR</span>${p.heart_rate}</div>
+        <div class="vital-mini"><span>BP</span>${p.bp_systolic}/${p.bp_diastolic}</div>
+        <div class="vital-mini"><span>SpO2</span>${p.spo2}%</div>
+        <div class="vital-mini"><span>Temp</span>${p.temperature}°C</div>
+        <div class="vital-mini"><span>RR</span>${p.resp_rate}</div>
+        <div class="vital-mini"><span>Risk</span>${p.attack_prob}%</div>
+      </div>
+      ${p.is_attack ? `<div class="attack-type-tag">⚠ ${p.attack_type}</div>` : ''}
+    </div>`;
+    }
+
+    function selectPatient(pid) {
+      if (selectedPatient !== pid) {
+        patientRiskLabels.length = 0;
+        patientRiskData.length = 0;
+        if (patientRiskChart) patientRiskChart.update();
+      }
+      selectedPatient = pid;
+      if (document.getElementById('patientRiskContainer')) document.getElementById('patientRiskContainer').style.display = 'block';
+      if (document.getElementById('shapContainer')) document.getElementById('shapContainer').style.display = 'block';
+    }
+
+    function renderSelectedDetail(patients) {
+      if (!selectedPatient) return;
+      const p = patients.find(x => x.patient_id === selectedPatient);
+      if (!p) return;
+      if (document.getElementById('selected-detail')) {
+        document.getElementById('selected-detail').innerHTML = `
+    <div class="selected-patient">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-weight:700;font-size:1rem;">${p.patient_id}</span>
+        <span class="badge ${p.severity_class}">${p.is_attack ? '🚨 ATTACK — ' + p.severity : '✅ Normal'}</span>
+      </div>
+      ${p.is_attack ? `<div style="margin-top:8px;font-size:0.75rem;color:#f0883e;font-weight:600;">Detected: ${p.attack_type}</div>
+      <div style="margin-top:4px;font-size:0.7rem;color:#8b949e;font-style:italic;">${p.explanation}</div>` : ''}
+      <div class="vitals-detail">
+        <div class="vital-detail"><div class="v">${p.heart_rate}</div><div class="l">Heart Rate</div></div>
+        <div class="vital-detail"><div class="v">${p.bp_systolic}/${p.bp_diastolic}</div><div class="l">Blood Pressure</div></div>
+        <div class="vital-detail"><div class="v">${p.spo2}%</div><div class="l">SpO2</div></div>
+        <div class="vital-detail"><div class="v">${p.temperature}°C</div><div class="l">Temp</div></div>
+        <div class="vital-detail"><div class="v">${p.resp_rate}</div><div class="l">Resp Rate</div></div>
+        <div class="vital-detail"><div class="v">${p.attack_prob}%</div><div class="l">Risk</div></div>
+      </div>
+      <button class="btn" style="margin-top:10px;width:100%;" onclick="generateReport('${p.patient_id}')">📄 Generate PDF Report</button>
+    </div>`;
+      }
+
+      // Update SHAP chart
+      if (shapRadarChart) {
+        if (p.is_attack && p.shap_values) {
+          shapRadarChart.data.datasets[0].data = [
+            Math.abs(p.shap_values['Heart Rate'] || 0),
+            Math.abs(p.shap_values['Bp Systolic'] || 0),
+            Math.abs(p.shap_values['Bp Diastolic'] || 0),
+            Math.abs(p.shap_values['Spo2'] || 0),
+            Math.abs(p.shap_values['Temperature'] || 0),
+            Math.abs(p.shap_values['Resp Rate'] || 0)
+          ];
+          shapRadarChart.update();
+        } else {
+          shapRadarChart.data.datasets[0].data = [0, 0, 0, 0, 0, 0];
+          shapRadarChart.update();
+        }
+      }
+    }
+
+    function generateReport(pid) {
+      fetch(`/api/report/${pid}`).then(r => r.json()).then(d => alert(`✅ Report generated for ${pid}!\nSaved to: ${d.path}`));
+    }
+
+    let currentSimPatient = null;
+    function renderSimulatedDetail(patients) {
+      const simDropdown = document.getElementById('sim-patient');
+      if (!simDropdown || !simDropdown.value) return;
+      const p = patients.find(x => x.patient_id === simDropdown.value);
+      if (!p) return;
+
+      if (currentSimPatient !== p.patient_id) {
+        simPatientRiskLabels.length = 0;
+        simPatientRiskData.length = 0;
+        if (simPatientRiskChart) simPatientRiskChart.update();
+        currentSimPatient = p.patient_id;
+      }
+
+      if (document.getElementById('simulated-detail')) {
+        document.getElementById('simulated-detail').innerHTML = `
+    <div class="selected-patient">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-weight:700;font-size:1rem;">${p.patient_id}</span>
+        <span class="badge ${p.severity_class}">${p.is_attack ? '🚨 ATTACK — ' + p.severity : '✅ Normal'}</span>
+      </div>
+      ${p.is_attack ? `<div style="margin-top:8px;font-size:0.75rem;color:#f0883e;font-weight:600;">Detected: ${p.attack_type}</div>
+      <div style="margin-top:4px;font-size:0.7rem;color:#8b949e;font-style:italic;">${p.explanation}</div>` : ''}
+      <div class="vitals-detail">
+        <div class="vital-detail"><div class="v">${p.heart_rate}</div><div class="l">Heart Rate</div></div>
+        <div class="vital-detail"><div class="v">${p.bp_systolic}/${p.bp_diastolic}</div><div class="l">Blood Pressure</div></div>
+        <div class="vital-detail"><div class="v">${p.spo2}%</div><div class="l">SpO2</div></div>
+        <div class="vital-detail"><div class="v">${p.temperature}°C</div><div class="l">Temp</div></div>
+        <div class="vital-detail"><div class="v">${p.resp_rate}</div><div class="l">Resp Rate</div></div>
+        <div class="vital-detail"><div class="v">${p.resp_rate}</div><div class="l">Resp Rate</div></div>
+        <div class="vital-detail"><div class="v">${p.attack_prob}%</div><div class="l">Risk</div></div>
+      </div>
+    </div>`;
+      }
+
+      if (document.getElementById('sim-patientRiskContainer')) document.getElementById('sim-patientRiskContainer').style.display = 'block';
+
+      const now = new Date().toLocaleTimeString();
+      simPatientRiskLabels.push(now);
+      simPatientRiskData.push(p.attack_prob);
+      if (simPatientRiskLabels.length > 20) { simPatientRiskLabels.shift(); simPatientRiskData.shift(); }
+      if (simPatientRiskChart) simPatientRiskChart.update();
+    }
+
+    // Main polling loop
+    async function poll() {
+      try {
+        const [streamRes, alertRes, historyRes] = await Promise.all([
+          fetch('/api/stream'), fetch('/api/alerts'), fetch('/api/history')
+        ]);
+        const patients = await streamRes.json();
+        const alerts = await alertRes.json();
+        const historyData = await historyRes.json();
+
+        // Populate simulator dropdown once
+        if (!patientsListPopulated && patients.length > 0) {
+          const simDrop = document.getElementById('sim-patient');
+          if (simDrop) {
+            simDrop.innerHTML = patients.map(p => `<option value="${p.patient_id}">${p.patient_id}</option>`).join('');
+          }
+          patientsListPopulated = true;
+        }
+
+        const now = new Date().toLocaleTimeString();
+        totalReadings += patients.length;
+        let newAttacks = 0;
+
+        patients.forEach(p => {
+          // Audio alarm trigger
+          if (p.is_attack && p.severity === 'High' && !patientAttackState[p.patient_id]) {
+            playAlarm();
+            if ("Notification" in window && Notification.permission === "granted" && !alarmsMuted) {
+              new Notification(`Critical FDIA: ${p.patient_id}`, { body: p.explanation });
+            }
+          }
+          patientAttackState[p.patient_id] = (p.is_attack && p.severity === 'High');
+
+          if (p.is_attack) {
+            newAttacks++;
+            if (attackCounts[p.attack_type] !== undefined) attackCounts[p.attack_type]++;
+          }
+          if (severityCounts[p.severity] !== undefined) severityCounts[p.severity]++;
+        });
+
+        totalAttacks += newAttacks;
+
+        // Stats
+        if (document.getElementById('total-patients')) document.getElementById('total-patients').textContent = patients.length;
+        if (document.getElementById('normal-count')) document.getElementById('normal-count').textContent = patients.filter(p => !p.is_attack).length;
+        if (document.getElementById('attack-count')) document.getElementById('attack-count').textContent = totalAttacks;
+        if (document.getElementById('attack-rate')) document.getElementById('attack-rate').textContent = totalReadings > 0 ? (totalAttacks / totalReadings * 100).toFixed(1) + '%' : '0%';
+
+        // Grid
+        if (document.getElementById('patients-grid')) document.getElementById('patients-grid').innerHTML = patients.map(renderPatientCard).join('');
+
+        // Charts
+        timelineLabels.push(now); timelineData.push(newAttacks);
+        if (timelineLabels.length > 20) { timelineLabels.shift(); timelineData.shift(); }
+        if (timelineChart) timelineChart.update();
+
+        if (attackChart) {
+           attackChart.data.datasets[0].data = [attackCounts['Additive Bias'], attackCounts['Scaling'], attackCounts['Replay']];
+           attackChart.update();
+        }
+
+        if (severityChart) {
+           severityChart.data.datasets[0].data = [severityCounts['High'], severityCounts['Medium'], severityCounts['Low'], severityCounts['Normal']];
+           severityChart.update();
+        }
+
+        if (selectedPatient && patientRiskChart) {
+          const p = patients.find(x => x.patient_id === selectedPatient);
+          if (p) {
+            patientRiskLabels.push(now); patientRiskData.push(p.attack_prob);
+            if (patientRiskLabels.length > 20) { patientRiskLabels.shift(); patientRiskData.shift(); }
+            patientRiskChart.update();
+          }
+        }
+
+        // Alerts
+        const alertBadge = document.getElementById('alert-badge');
+        if (alertBadge) alertBadge.textContent = alerts.length;
+        const alertHtml = alerts.slice(0, 15).map(a => `<div class="alert-item"><div class="alert-header"><span class="alert-pid">🚨 ${a.patient_id}</span><span class="alert-time">${a.timestamp}</span></div><div class="alert-type">${a.attack_type} — ${a.severity}</div><div class="alert-exp">${a.explanation}</div></div>`).join('');
+        const alertLog = document.getElementById('alert-log');
+        if (alertLog) alertLog.innerHTML = alertHtml;
+        const analyticsLog = document.getElementById('analytics-alert-log');
+        if (analyticsLog) analyticsLog.innerHTML = alertHtml;
+
+        // History Table
+        const historyBody = document.getElementById('history-body');
+        if (historyBody) {
+          historyBody.innerHTML = historyData.map(h => `<tr style="border-bottom:1px solid #21262d;"><td style="padding:4px 0;">${h.timestamp}</td><td>${h.patient_id}</td><td>${h.attack_prob}%</td><td><span style="color:${h.severity === 'High' ? '#f85149' : h.severity === 'Medium' ? '#ff9800' : h.severity === 'Low' ? '#ffeb3b' : '#3fb950'}">${h.severity}</span></td><td style="font-style:italic; font-size:0.7rem;">${h.explanation || 'Processed telemetry limit'}</td></tr>`).join('');
+        }
+
+        renderSelectedDetail(patients);
+        renderSimulatedDetail(patients);
+
+      } catch (e) { console.error(e); }
+    }
+
+    setInterval(poll, 2000);
+    poll();
+  </script>
+</body>
+
+</html>
