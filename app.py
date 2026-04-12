@@ -43,9 +43,20 @@ patient_cursors = {pid: 0 for pid in PATIENTS}
 live_patient_data = {pid: None for pid in PATIENTS}
 injected_overrides = {pid: {} for pid in PATIENTS}
 
+# ── Pre-populate all patients immediately on startup ─────────
+def get_initial_reading(pid):
+    pdata = df_all[df_all['patient_id'] == pid]
+    row = pdata.iloc[0]
+    return [row[f] for f in FEATURES]
+
+for pid in PATIENTS:
+    live_patient_data[pid] = get_initial_reading(pid)
+    patient_cursors[pid] = 1
+
 def simulate_live_data():
     """Background thread simulating data every 2 seconds"""
     while True:
+        time.sleep(2)
         for pid in PATIENTS:
             pdata = df_all[df_all['patient_id'] == pid]
             idx = patient_cursors[pid] % len(pdata)
@@ -59,7 +70,6 @@ def simulate_live_data():
                         
             live_patient_data[pid] = reading_raw
             patient_cursors[pid] += 1
-        time.sleep(2)
 
 threading.Thread(target=simulate_live_data, daemon=True).start()
 
