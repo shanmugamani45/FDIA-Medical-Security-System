@@ -134,6 +134,21 @@ https://fdia-medical-security-system.onrender.com/
 
 ---
 
+## Screen Shot
+### Login page
+<img width="1918" height="969" alt="image" src="https://github.com/user-attachments/assets/4132621f-79ef-4d35-be74-b1e30b0a20ab" />
+
+### Admin view
+<img width="1914" height="967" alt="image" src="https://github.com/user-attachments/assets/e042bc66-6abd-42ef-8486-a327733add32" />
+
+<img width="1919" height="961" alt="image" src="https://github.com/user-attachments/assets/5c5b2b0b-d056-4b15-95b5-33cd2f530c18" />
+
+### Doctor view
+<img width="1918" height="969" alt="image" src="https://github.com/user-attachments/assets/64a00a2e-1e87-4a18-b940-e1a1484f0b6d" />
+
+### hacker view
+<img width="1916" height="964" alt="image" src="https://github.com/user-attachments/assets/d677c5b8-1a7b-486b-8602-9488a8c3db8e" />
+
 ## Conclusion
 
 This project demonstrates how machine learning can be applied to detect cybersecurity threats in healthcare systems. It provides a scalable foundation for building secure and intelligent medical monitoring systems.
